@@ -803,7 +803,10 @@
     <h2>Your child's future starts today.</h2>
     <p>Join the KISuper waitlist. Be first to open an account when we launch. No spam — just your early access invite.</p>
     <form class="waitlist-form" onsubmit="handleSubmit(event)">
-      <input type="email" class="waitlist-input" placeholder="Enter your email address" required />
+      <input type="email" name="EMAIL" class="waitlist-input" placeholder="Enter your email address" required />
+      <div style="position:absolute;left:-5000px;" aria-hidden="true">
+        <input type="text" name="b_d339c5970f83a139ce0e1e309_50310db899" tabindex="-1" value="">
+      </div>
       <button type="submit" class="btn btn-orange btn-lg" style="white-space:nowrap;border-radius:50px;">
         Get Early Access →
       </button>
@@ -892,17 +895,47 @@
 </footer>
 
 <script>
-  // Waitlist submit
+  // Waitlist submit — connected to Mailchimp
   function handleSubmit(e) {
     e.preventDefault();
-    const email = e.target.querySelector('input').value;
-    const btn = e.target.querySelector('button');
-    btn.textContent = '🎉 You\'re on the list!';
-    btn.style.background = '#16A34A';
+    const form = e.target;
+    const email = form.querySelector('input[name="EMAIL"]').value;
+    const btn = form.querySelector('button[type="submit"]');
+
+    btn.textContent = '⏳ Joining...';
     btn.disabled = true;
-    e.target.querySelector('input').disabled = true;
-    console.log('Waitlist signup:', email);
-    // TODO: Connect to Mailchimp / ConvertKit API
+
+    // Remove old script tag if exists
+    const old = document.getElementById('mc-jsonp');
+    if (old) old.parentNode.removeChild(old);
+
+    // Mailchimp JSONP submission — keeps user on kisuper.com
+    const mcUrl = 'https://kisuper.us3.list-manage.com/subscribe/post-json'
+      + '?u=d339c5970f83a139ce0e1e309'
+      + '&id=50310db899'
+      + '&f_id=0087bae3f0'
+      + '&EMAIL=' + encodeURIComponent(email)
+      + '&c=mcCallback';
+
+    window.mcCallback = function(data) {
+      if (data.result === 'success') {
+        btn.textContent = '🎉 You\'re on the list!';
+        btn.style.background = '#16A34A';
+        form.querySelector('input[name="EMAIL"]').disabled = true;
+      } else {
+        const msg = data.msg || 'Something went wrong — please try again.';
+        btn.textContent = msg.includes('already') ? '✅ Already signed up!' : '⚠️ Try again';
+        btn.style.background = msg.includes('already') ? '#16A34A' : '#EF4444';
+        btn.disabled = false;
+      }
+      const s = document.getElementById('mc-jsonp');
+      if (s) s.parentNode.removeChild(s);
+    };
+
+    const script = document.createElement('script');
+    script.id = 'mc-jsonp';
+    script.src = mcUrl;
+    document.head.appendChild(script);
   }
 
   // Smooth scroll for all anchor links
